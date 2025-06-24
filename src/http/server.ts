@@ -14,8 +14,6 @@ server.get("/", () => {
 })
 
 
-
-
 server.post("/users", async (req, res) => {
 
   const { email, password } = req.body as { email: string, password: string }
@@ -125,6 +123,29 @@ server.put("/users/:id", async (req, res) => {
 
   return res.status(200).send({
     message: "User updated successfully",
+  })
+})
+
+server.post("/tasks", async (req, res) => {
+  const tasksSchema = z.object({
+    userId: z.string(),
+    title: z.string(),
+    description: z.string(),
+  })
+
+  const { userId, title, description } = tasksSchema.parse(req.body)
+
+  const task = await prisma.tasks.create({
+    data: {
+      title: title,
+      description: description,
+      userId: userId,
+    }
+  })
+
+  return res.status(201).send({
+    id: task.id,
+    message: "Task created successfully",
   })
 })
 
