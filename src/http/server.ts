@@ -13,30 +13,54 @@ server.get("/", () => {
   }
 })
 
-server.post("/users", async (request, reply) => {
-  const createUserSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-  })
 
-  const { email, password } = createUserSchema.parse(request.body)
 
-  const passwordHash = await hash(password, 6)
 
-  const userCreated = await prisma.user.create({
+server.post("/users", async (req, res) => {
+
+  const { email, password } = req.body as { email: string, password: string }
+
+  await prisma.user.create({
     data: {
-      email: email,
-      password: passwordHash,
+      email,
+      password,
     }
   })
 
-  return reply.status(201).send({
-    id: userCreated.id,
-    message: "User created successfully",
+  return res.status(201).send({
+    message: "user created successfully",
   })
 })
 
-server.get("/users", async (request, reply) => {
+server.get("/user/:id", async (request, reply) => {
+  const userGetSchema = z.object({
+    id: z.string(),
+  })
+
+  const { id } = userGetSchema.parse(request.params)
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: id,
+    }
+  })
+
+  if (!user) {
+    return reply.status(404).send({
+      message: "User not found",
+    })
+  }
+
+  return reply.status(200).send({
+    id: user.id,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  })
+
+})
+
+server.get("/users", async (_, reply) => {
   const users = await prisma.user.findMany()
   return reply.status(200).send(users.map(user => ({
     id: user.id,
@@ -61,6 +85,49 @@ server.delete("/users/:id", async (request, reply) => {
     message: "User deleted successfully",
   })
 })
+
+server.put("/users/:id", async (req, res) => {
+  const userUpdateSchemaPamams = z.object({
+    id: z.string(),
+  })
+
+  const userUpdateSchemaBody = z.object({
+    email: z.string().email(),
+    password: z.string(),
+  })
+
+  const { id } = userUpdateSchemaPamams.parse(req.params)
+  const { email, password } = userUpdateSchemaBody.parse(req.body)
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: id,
+    }
+  })
+
+  if (!user) {
+    return res.status(404).send({
+      message: "User not found",
+    })
+  }
+
+  const hashedPassword = await hash(password, 6)
+
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      email: email,
+      password: hashedPassword,
+    }
+  })
+
+  return res.status(200).send({
+    message: "User updated successfully",
+  })
+})
+
 
 server.listen({
   port: 3333,
