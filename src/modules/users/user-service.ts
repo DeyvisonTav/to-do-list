@@ -23,6 +23,21 @@ interface UserCreateResponse {
   user: User
 }
 
+export interface UserUpdateRequest {
+  id: string
+  email: string
+  password: string
+}
+
+export interface UserUpdateResponse {
+  user: User
+}
+
+export interface UserDeleteRequest {
+  id: string
+}
+
+
 export class UserService {
 
   constructor(private readonly prisma: PrismaService) { }
@@ -63,6 +78,21 @@ export class UserService {
     }
   }
 
+  async updateUser({ id, email, password }: UserUpdateRequest): Promise<UserUpdateResponse> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { email, password }
+    })
+    return {
+      user
+    }
+  }
+
+  async deleteUser({ id }: UserDeleteRequest): Promise<void> {
+    await this.prisma.user.delete({
+      where: { id }
+    })
+  }
 }
 
 
